@@ -18,11 +18,11 @@ String strmot = "";
 String strpas = "";
 int mode = 0;
 // minimal pulse duration for stepper in micro second
-int minPulseMicroS = 10;
+int minPulseMicroS = 500;
 
 void setup() {
-  Serial.begin(9600);
-  Serial2.begin(9600);
+  Serial.begin(115200);
+  Serial2.begin(115200);
   pinMode( JUMP_O, OUTPUT );
   pinMode( JUMP_I  , INPUT );
   digitalWrite( JUMP_O,LOW );
@@ -94,7 +94,7 @@ void loop() {
         break;
     }
   }
-  delay(1);
+  delay(2);
 }
   
 void serialEvent() {
