@@ -20,7 +20,9 @@ L1p=0
 L2p=0
 L3p=0
 
-K = 2
+# pulley gain in step/mm
+K = 200/(numpy.pi*10)
+
 
 l = Leap.Controller()
 while True:
@@ -36,11 +38,11 @@ while True:
             L2 = numpy.linalg.norm(M-A2)-b2
             L3 = numpy.linalg.norm(M-A3)-b3
             if L1<0:
-                L1=0
+                L1=1
             if L2<0:
-                L2=0
+                L2=1
             if L3<0:
-                L3=0
+                L3=1
             print L1,L2,L3
             ser.reset_output_buffer()
             ser.reset_input_buffer()
