@@ -54,6 +54,8 @@ def loadPose(i):
     update_pinoccio()
         
 def update_pinoccio():
+    ser.reset_output_buffer()
+    ser.reset_input_buffer()
     for i in range(10):
         line = "M"+str(i+1)+"P"+str(sliderList[i].value())+"\n"
         print line
