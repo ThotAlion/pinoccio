@@ -3,6 +3,7 @@ import sys
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import serial
+import time
 
 app = QApplication(sys.argv)
 
@@ -30,7 +31,7 @@ mainLay.addWidget(tapeTable)
 sliderList = []
 for i in range(10):
     s = QSlider()
-    s.setMinimum(0)
+    s.setMinimum(1)
     s.setMaximum(10000)
     sliderList.append(s)
     mainLay.addWidget(s)
@@ -38,10 +39,16 @@ for i in range(10):
 # save button
 saveLay = QVBoxLayout()
 saveButton = QPushButton("Save pose")
+mouButton = QPushButton("Mou!")
+zeroButton = QPushButton("Zero!")
 saveName = QLineEdit()
 saveLay.addWidget(saveButton)
+saveLay.addWidget(mouButton)
+saveLay.addWidget(zeroButton)
 saveLay.addWidget(saveName)
 mainLay.addLayout(saveLay)
+
+# 
 
 # slots
 def loadPose(i):
@@ -61,6 +68,23 @@ def update_pinoccio():
         print line
         ser.write(line)
         
+def setMou():
+    ser.reset_output_buffer()
+    ser.reset_input_buffer()
+    for i in range(10):
+        line = "M"+str(i+1)+"P-1\n"
+        print line
+        ser.write(line)
+        
+def setZero():
+    ser.reset_output_buffer()
+    ser.reset_input_buffer()
+    for i in range(10):
+        line = "M"+str(i+1)+"P0\n"
+        print line
+        ser.write(line)
+        time.sleep(2)
+        
 def savePose():
     fileName = QDir.currentPath()+"/POSES/"+saveName.text()
     f = open(fileName,'w')
@@ -74,6 +98,8 @@ def savePose():
 # signals
 mainW.connect(tapeTable,SIGNAL("clicked(QModelIndex)"),loadPose)
 mainW.connect(saveButton,SIGNAL("clicked()"),savePose)
+mainW.connect(mouButton,SIGNAL("clicked()"),setMou)
+mainW.connect(zeroButton,SIGNAL("clicked()"),setZero)
 for i in range(10):
     mainW.connect(sliderList[i],SIGNAL("sliderReleased()"),update_pinoccio)
 
