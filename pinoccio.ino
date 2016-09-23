@@ -19,6 +19,8 @@ String strpas = "";
 int mode = 0;
 // minimal pulse duration for stepper in micro second
 int minPulseMicroS = 50;
+// time of step in micro seconds
+int sampling_period = 1000;
 
 void setup() {
   Serial.begin(115200);
@@ -48,13 +50,14 @@ void setup() {
 }
 
 void loop() {
-  delayMicroseconds(100);
+  delayMicroseconds(sampling_period);
   for(int m=0;m<=4;m++){
     switch (state[m]){
       case 0:
         // disable the motor
         digitalWrite( M_ENABLE_PIN[m],HIGH);
         if (pcom[m]==0){
+          sampling_period = 1000;
           state[m]=1;
         }
         break;
@@ -65,8 +68,12 @@ void loop() {
         digitalWrite( M_STEP_PIN[m],HIGH );
         delayMicroseconds(minPulseMicroS);
         digitalWrite( M_STEP_PIN[m],LOW );
+        sampling_period-=1;
+        if(sampling_period <= 100){
+          sampling_period = 100;
+        }
         if(digitalRead(M_STOP_PIN[m])==HIGH){
-          state[m]=1;
+          state[m]=2;
         }
         break;
         
@@ -75,6 +82,7 @@ void loop() {
         pcur[m]=1;
         pcom[m]=1;
         state[m]=3;
+        sampling_period = 100;
         break;
         
       case 3:
@@ -100,7 +108,11 @@ void loop() {
           pcom[m] = 1;
         }*/
         if (pcom[m]==0){
+          sampling_period = 1000;
           state[m]=1;
+        }
+        if (pcom[m]==-1){
+          state[m]=0;
         }
         break;
     }
