@@ -10,7 +10,7 @@ int JUMP_O = 25;
 
 //Declaration
 int pcur[] = {0,0,0,0,0};
-int pcom[] = {0,0,0,0,0};
+int pcom[] = {1,1,1,1,1};
 int state[] = {0,0,0,0,0};
 
 int serialState = 0;
@@ -52,7 +52,16 @@ void loop() {
   for(int m=0;m<=4;m++){
     switch (state[m]){
       case 0:
+        // disable the motor
+        digitalWrite( M_ENABLE_PIN[m],HIGH);
+        if (pcom[m]==0){
+          state[m]=1;
+        }
+        break;
+        
+      case 1:
         // go up until the switch
+        digitalWrite( M_ENABLE_PIN[m],LOW);
         digitalWrite( M_STEP_PIN[m],HIGH );
         delayMicroseconds(minPulseMicroS);
         digitalWrite( M_STEP_PIN[m],LOW );
@@ -61,13 +70,14 @@ void loop() {
         }
         break;
         
-      case 1:
+      case 2:
         // is at the switch limit
         pcur[m]=1;
         pcom[m]=1;
-        state[m]=2;
+        state[m]=3;
         break;
-      case 2:
+        
+      case 3:
         // control
         if(pcur[m]<pcom[m]){
           digitalWrite( M_DIR_PIN[m],LOW );
@@ -90,7 +100,7 @@ void loop() {
           pcom[m] = 1;
         }*/
         if (pcom[m]==0){
-          state[m]=0;
+          state[m]=1;
         }
         break;
     }
