@@ -32,7 +32,7 @@ sliderList = []
 for i in range(10):
     s = QSlider()
     s.setMinimum(1)
-    s.setMaximum(10000)
+    s.setMaximum(40000)
     sliderList.append(s)
     mainLay.addWidget(s)
 

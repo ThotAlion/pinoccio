@@ -12,6 +12,7 @@ int JUMP_O = 25;
 int pcur[] = {0,0,0,0,0};
 int pcom[] = {1,1,1,1,1};
 int state[] = {0,0,0,0,0};
+int ncycle[] = {100,100,100,100,100};
 
 int serialState = 0;
 String strmot = "";
@@ -20,7 +21,8 @@ int mode = 0;
 // minimal pulse duration for stepper in micro second
 int minPulseMicroS = 50;
 // time of step in micro seconds
-int sampling_period = 1000;
+int sampling_period = 10;
+int tps = 100;
 
 void setup() {
   Serial.begin(115200);
@@ -57,22 +59,31 @@ void loop() {
         // disable the motor
         digitalWrite( M_ENABLE_PIN[m],HIGH);
         if (pcom[m]==0){
-          sampling_period = 1000;
+          tps = 100;
+          ncycle[m] = tps;
           state[m]=1;
         }
         break;
         
       case 1:
         // go up until the switch
-        digitalWrite( M_ENABLE_PIN[m],LOW);
-        digitalWrite( M_STEP_PIN[m],HIGH );
-        delayMicroseconds(minPulseMicroS);
-        digitalWrite( M_STEP_PIN[m],LOW );
-        sampling_period-=1;
-        if(sampling_period <= 100){
-          sampling_period = 100;
+        if(ncycle[m]<=0){
+          digitalWrite( M_ENABLE_PIN[m],LOW);
+          digitalWrite( M_DIR_PIN[m],HIGH );
+          digitalWrite( M_STEP_PIN[m],HIGH );
+          delayMicroseconds(minPulseMicroS);
+          digitalWrite( M_STEP_PIN[m],LOW );
+          tps = tps-1;
+          if(tps<=1){
+            tps=1;
+          }
+          ncycle[m]=tps;
+        }
+        else{
+          ncycle[m] =  ncycle[m]-1;
         }
         if(digitalRead(M_STOP_PIN[m])==HIGH){
+          ncycle[m] = 100;
           state[m]=2;
         }
         break;
@@ -82,33 +93,44 @@ void loop() {
         pcur[m]=1;
         pcom[m]=1;
         state[m]=3;
-        sampling_period = 100;
         break;
         
       case 3:
         // control
-        if(pcur[m]<pcom[m]){
-          digitalWrite( M_DIR_PIN[m],LOW );
-          delayMicroseconds(minPulseMicroS);
-          digitalWrite( M_STEP_PIN[m],HIGH );
-          delayMicroseconds(minPulseMicroS);
-          digitalWrite( M_STEP_PIN[m],LOW );
-          pcur[m] = pcur[m]+1;
+        if(ncycle[m]<=0){
+          if(pcur[m]<pcom[m]){
+            digitalWrite( M_DIR_PIN[m],LOW );
+            delayMicroseconds(minPulseMicroS);
+            digitalWrite( M_STEP_PIN[m],HIGH );
+            delayMicroseconds(minPulseMicroS);
+            digitalWrite( M_STEP_PIN[m],LOW );
+            pcur[m] = pcur[m]+1;
+          }
+          else if(pcur[m]>pcom[m]){
+            digitalWrite( M_DIR_PIN[m],HIGH );
+            delayMicroseconds(minPulseMicroS);
+            digitalWrite( M_STEP_PIN[m],HIGH );
+            delayMicroseconds(minPulseMicroS);
+            digitalWrite( M_STEP_PIN[m],LOW );
+            pcur[m] = pcur[m]-1;
+          }
+          //computation of time cycle
+          ncycle[m] = 10-abs(pcur[m]-pcom[m])/200;
+          if(ncycle[m]<=1){
+            ncycle[m]=1;
+          }
         }
-        else if(pcur[m]>pcom[m]){
-          digitalWrite( M_DIR_PIN[m],HIGH );
-          delayMicroseconds(minPulseMicroS);
-          digitalWrite( M_STEP_PIN[m],HIGH );
-          delayMicroseconds(minPulseMicroS);
-          digitalWrite( M_STEP_PIN[m],LOW );
-          pcur[m] = pcur[m]-1;
+        else
+        {
+          ncycle[m] = ncycle[m]-1;
         }
         /*if(digitalRead(M_STOP_PIN[m])==HIGH){
           pcur[m] = 1;
           pcom[m] = 1;
         }*/
         if (pcom[m]==0){
-          sampling_period = 1000;
+          tps = 100;
+          ncycle[m] = tps;
           state[m]=1;
         }
         if (pcom[m]==-1){
