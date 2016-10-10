@@ -13,16 +13,18 @@ int pcur[] = {0,0,0,0,0};
 int pcom[] = {1,1,1,1,1};
 int state[] = {0,0,0,0,0};
 int ncycle[] = {100,100,100,100,100};
+int tps[] = {20,20,20,20,20};
 
 int serialState = 0;
 String strmot = "";
 String strpas = "";
 int mode = 0;
 // minimal pulse duration for stepper in micro second
-int minPulseMicroS = 50;
+int minPulseMicroS = 1;
 // time of step in micro seconds
-int sampling_period = 10;
-int tps = 100;
+int sampling_period = 5;
+// initial speed for acceleration
+int tps_init = 50;
 
 void setup() {
   Serial.begin(115200);
@@ -37,7 +39,6 @@ void setup() {
   if(digitalRead(JUMP_I)==LOW){
     mode=1;
   }
-  Serial.println("Mode "+String(mode));
   
   for(int m=0;m<=4;m++){
     pinMode( M_STEP_PIN[m], OUTPUT );
@@ -52,39 +53,43 @@ void setup() {
 }
 
 void loop() {
-  delayMicroseconds(sampling_period);
   for(int m=0;m<=4;m++){
     switch (state[m]){
       case 0:
         // disable the motor
         digitalWrite( M_ENABLE_PIN[m],HIGH);
         if (pcom[m]==0){
-          tps = 100;
-          ncycle[m] = tps;
+          tps[m] = tps_init;
+          ncycle[m] = tps[m];
           state[m]=1;
         }
         break;
         
       case 1:
         // go up until the switch
+        digitalWrite( M_ENABLE_PIN[m],LOW);
+        digitalWrite( M_DIR_PIN[m],HIGH );
         if(ncycle[m]<=0){
-          digitalWrite( M_ENABLE_PIN[m],LOW);
-          digitalWrite( M_DIR_PIN[m],HIGH );
-          digitalWrite( M_STEP_PIN[m],HIGH );
-          delayMicroseconds(minPulseMicroS);
-          digitalWrite( M_STEP_PIN[m],LOW );
-          tps = tps-1;
-          if(tps<=1){
-            tps=1;
+          tps[m] = tps[m]-1;
+          if(tps[m]<=minPulseMicroS+1){
+            tps[m]=minPulseMicroS+1;
           }
-          ncycle[m]=tps;
+          ncycle[m]=tps[m];
         }
         else{
-          ncycle[m] =  ncycle[m]-1;
+          if(ncycle[m]<=minPulseMicroS){
+            digitalWrite( M_STEP_PIN[m],HIGH );
+          }
+          else{
+            digitalWrite( M_STEP_PIN[m],LOW );
+          }
+          ncycle[m] = ncycle[m]-1;
         }
         if(digitalRead(M_STOP_PIN[m])==HIGH){
-          ncycle[m] = 100;
           state[m]=2;
+        }
+        if (pcom[m]==-1){
+          state[m]=0;
         }
         break;
         
@@ -92,45 +97,46 @@ void loop() {
         // is at the switch limit
         pcur[m]=1;
         pcom[m]=1;
+        ncycle[m] = tps_init;
         state[m]=3;
         break;
         
       case 3:
         // control
+        // go up until the switch
+        digitalWrite( M_ENABLE_PIN[m],LOW);
         if(ncycle[m]<=0){
           if(pcur[m]<pcom[m]){
             digitalWrite( M_DIR_PIN[m],LOW );
-            delayMicroseconds(minPulseMicroS);
-            digitalWrite( M_STEP_PIN[m],HIGH );
-            delayMicroseconds(minPulseMicroS);
-            digitalWrite( M_STEP_PIN[m],LOW );
             pcur[m] = pcur[m]+1;
           }
           else if(pcur[m]>pcom[m]){
             digitalWrite( M_DIR_PIN[m],HIGH );
-            delayMicroseconds(minPulseMicroS);
-            digitalWrite( M_STEP_PIN[m],HIGH );
-            delayMicroseconds(minPulseMicroS);
-            digitalWrite( M_STEP_PIN[m],LOW );
             pcur[m] = pcur[m]-1;
           }
-          //computation of time cycle
-          ncycle[m] = 10-abs(pcur[m]-pcom[m])/200;
-          if(ncycle[m]<=1){
-            ncycle[m]=1;
+          tps[m] = tps[m]-1;
+          if(tps[m]<=minPulseMicroS+1){
+            tps[m]=minPulseMicroS+1;
+          }
+          ncycle[m]=tps[m];
+        }
+        else{
+          if(pcur[m]!=pcom[m]){
+            if(ncycle[m]<=minPulseMicroS){
+              digitalWrite( M_STEP_PIN[m],HIGH );
+            }
+            else{
+              digitalWrite( M_STEP_PIN[m],LOW );
+            }
+            ncycle[m] = ncycle[m]-1;
+          }
+          else{
+            tps[m] = tps_init;
           }
         }
-        else
-        {
-          ncycle[m] = ncycle[m]-1;
-        }
-        /*if(digitalRead(M_STOP_PIN[m])==HIGH){
-          pcur[m] = 1;
-          pcom[m] = 1;
-        }*/
         if (pcom[m]==0){
-          tps = 100;
-          ncycle[m] = tps;
+          tps[m] = tps_init;
+          ncycle[m] = tps[m];
           state[m]=1;
         }
         if (pcom[m]==-1){
@@ -139,6 +145,7 @@ void loop() {
         break;
     }
   }
+  delayMicroseconds(sampling_period);
 }
   
 void serialEvent() {
