@@ -24,7 +24,9 @@ int minPulseMicroS = 1;
 // time of step in micro seconds
 int sampling_period = 5;
 // initial speed for acceleration
-int tps_init = 50;
+int tps_init = 100;
+// dead zone
+int zone = 100;
 
 void setup() {
   Serial.begin(115200);
@@ -114,9 +116,17 @@ void loop() {
             digitalWrite( M_DIR_PIN[m],HIGH );
             pcur[m] = pcur[m]-1;
           }
-          tps[m] = tps[m]-1;
+          if(abs(pcur[m]-pcom[m])<zone){
+            tps[m]=tps[m]+1;
+          }
+          else{
+            tps[m]=tps[m]-1;
+          }
+          if(tps[m]>=tps_init){
+            tps[m] = tps_init;
+          }
           if(tps[m]<=minPulseMicroS+1){
-            tps[m]=minPulseMicroS+1;
+            tps[m] = minPulseMicroS+1;
           }
           ncycle[m]=tps[m];
         }
@@ -129,9 +139,6 @@ void loop() {
               digitalWrite( M_STEP_PIN[m],LOW );
             }
             ncycle[m] = ncycle[m]-1;
-          }
-          else{
-            tps[m] = tps_init;
           }
         }
         if (pcom[m]==0){
@@ -172,11 +179,11 @@ void serialEvent() {
           if(inChar=='\n'){
             if(strmot.toInt()<=5){
               pcom[strmot.toInt()-1] = strpas.toInt();
-              Serial.println("got it!");
+             // Serial.println("got it!"); DEBUG SAVOIR SI CA BUG MAX DE RENVOYER DES DONNEES
             }
             else{
               Serial2.println("M"+strmot+"P"+strpas);
-              Serial.println("I transfer");
+             // Serial.println("I transfer");
             }
             serialState = 0;
           }
