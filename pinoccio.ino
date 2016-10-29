@@ -99,7 +99,8 @@ void loop() {
         // is at the switch limit
         pcur[m]=1;
         pcom[m]=1;
-        ncycle[m] = tps_init;
+        tps[m] = tps_init;
+        ncycle[m] = tps[m];
         state[m]=3;
         break;
         
